@@ -14,7 +14,11 @@ A fully pinned environment (Python 3.13, Linux) is in `requirements.lock`.
 
 ## Before you push
 
+Activate the virtualenv first: the hooks call `ruff`, `black` and `mypy`
+from the active environment (`language: system`).
+
 ```bash
+source .venv/bin/activate
 pre-commit run --all-files   # ruff, black, mypy, whitespace
 pytest --cov=src/lq45 --cov-fail-under=70
 ```
