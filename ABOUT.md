@@ -68,7 +68,6 @@ A fully pinned environment is in `requirements.lock`.
 ## Links
 
 - **Code**: [github.com/raindragon14/NeuralAlpha](https://github.com/raindragon14/NeuralAlpha)
-- **Baseline implementation**: [github.com/raindragon14/CNN-BiLSTM-LQ45](https://github.com/raindragon14/CNN-BiLSTM-LQ45)
 
 ## Citing
 
