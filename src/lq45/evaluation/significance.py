@@ -33,7 +33,9 @@ def newey_west_covariance(series: np.ndarray, lags: int | None = None) -> float:
     return max(cov, 0.0)
 
 
-def newey_west_covariance_matrix(series: np.ndarray, lags: int | None = None) -> np.ndarray:
+def newey_west_covariance_matrix(
+    series: np.ndarray, lags: int | None = None
+) -> np.ndarray:
     """HAC long-run covariance of the sample mean for `series` (T, k).
 
     Bartlett weights; the default lag follows the 4*(n/100)^(2/9) rule.

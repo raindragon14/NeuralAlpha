@@ -85,6 +85,9 @@ def load_panel(processed_dir: Path, tickers: Sequence[str], horizon: int) -> Pan
         if not path.exists():
             raise FileNotFoundError(f"processed features not found: {path}")
         frame = pd.read_csv(path, parse_dates=["Date"]).set_index("Date")
+        missing = {"target", *FEATURE_COLUMNS}.difference(frame.columns)
+        if missing:
+            raise ValueError(f"{path} is missing columns: {sorted(missing)}")
         if dates is None:
             dates = frame.index
         elif not frame.index.equals(dates):

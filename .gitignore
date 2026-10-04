@@ -86,7 +86,6 @@ AGENTS.md
 internal/
 Literature/
 
-# Docker (removed from tracking)
-.dockerignore
-Dockerfile
+# Generated tuning output
 configs/best_hyperparams.yaml
+

@@ -79,12 +79,24 @@ checks covering COVID-19 and the 2021–2025 rate-hike cycle.
 - 7 GiB RAM minimum (limits parallel jobs to 4)
 
 ```bash
-# Clone and set up
 git clone https://github.com/raindragon14/NeuralAlpha
 cd NeuralAlpha
-python -m venv .venv --system-site-packages
+python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pre-commit install
+```
+
+A fully pinned environment (Python 3.13, Linux) is in `requirements.lock`.
+
+The stages are also wrapped by a `Makefile` (`make help` lists the targets):
+
+```bash
+make reproduce   # data -> features -> train -> optimize -> evaluate
+make smoke       # offline end-to-end run on synthetic fixtures
+make test        # unit tests with a coverage gate
+make lint        # ruff + black --check + mypy
 ```
 
 ### Full Pipeline
@@ -113,8 +125,8 @@ python scripts/04_optimize.py --predictions experiments/<run_id>/predictions.csv
 # Quick grid (12 configs): --grid main --seed-mode ensemble
 
 # 6. Evaluation and regime analysis
-python scripts/05_evaluate.py --portfolio <opt>/portfolio_returns.csv --baselines <opt>/baseline_returns.csv --weights <opt>/weights.csv
-# Output: reports/metrics_table.csv, regime_table.csv, significance.csv, dsr_pbo.json, figures/
+python scripts/05_evaluate.py --portfolio <opt>/portfolio_returns.csv --baselines <opt>/baseline_returns.csv --weights <opt>/weights.csv --predictions experiments/<run_id>/predictions.csv
+# Output: reports/metrics_table.csv, regime_table.csv, ranker_table.csv, significance.csv, dsr_pbo.json, figures/
 ```
 
 ### Training Modes (`03_train_predict.py`)
@@ -137,12 +149,15 @@ Key options: `--seeds 0,1,2,3,4`, `--jobs 4` (max 4 with 7 GiB RAM), `--threads`
 ## Repository Structure
 
 ```
-configs/          YAML configs (model, split, portfolio, data, experiment, universe)
-data/             raw/, interim/, processed/ (gitignored — see data/README.md)
-docs/             keputusan_desain.md (decision log with citations)
-scripts/          Numbered pipeline 01_fetch → 05_evaluate
-src/lq45/         Package: data, features, models, portfolio, evaluation, utils
-tests/            30 unit tests (pytest)
+configs/           YAML configs (model, split, portfolio, data, experiment, universe)
+data/              raw/, interim/, processed/ (gitignored — see data/README.md)
+docs/              keputusan_desain.md (decision log), references.bib, RESULTS.md
+scripts/           Numbered pipeline 01_fetch → 05_evaluate
+src/lq45/          Package: data, features, models, portfolio, evaluation, utils
+tests/             unit tests + tests/test_pipeline_smoke.py (offline end-to-end)
+Makefile           Pipeline entrypoints (make reproduce / smoke / test / lint)
+requirements.lock  Fully pinned environment
+.github/           CI: lint, type-check and tests on Python 3.11-3.13
 ```
 
 ---
@@ -173,30 +188,8 @@ on both the baseline and pre-trained prediction sets.
 
 ## Key Results
 
-Tables below will be filled after the full-grid evaluation.
-
-| Metric | Baseline (Supervised) | NeuralAlpha (Pre-trained) | IHSG Buy-Hold | 1/N Equal Weight |
-|--------|----------------------|---------------------------|---------------|------------------|
-| **Annualized Return** | — | — | — | — |
-| **Annualized Volatility** | — | — | — | — |
-| **Sharpe Ratio (LW-HAC)** | — | — | — | — |
-| **Sortino Ratio** | — | — | — | — |
-| **Calmar Ratio** | — | — | — | — |
-| **Max Drawdown** | — | — | — | — |
-| **Turnover (mean per rebalance)** | — | — | — | — |
-| **Deflated Sharpe (DSR)** | — | — | — | — |
-| **PBO (main grid)** | — | — | — | — |
-
-| Regime | Baseline Sharpe | NeuralAlpha Sharpe | IHSG Sharpe |
-|--------|----------------|-------------------|-------------|
-| **COVID 2020 (OOS)** | — | — | — |
-| **Recovery + rate hikes 2021–2025 (OOS)** | — | — | — |
-
-| Statistical Test | Result |
-|------------------|--------|
-| Romano-Wolf (vs IHSG) | — |
-| Romano-Wolf (vs 1/N) | — |
-| Sharpe difference (LW-HAC, vs IHSG) | — |
+The out-of-sample tables are not yet filled. `docs/RESULTS.md` is the template
+they will be written into; `make reproduce` regenerates them from scratch.
 
 ---
 
@@ -204,8 +197,12 @@ Tables below will be filled after the full-grid evaluation.
 
 - `data/README.md` — Data sources, feature definitions, limitations
 - `docs/keputusan_desain.md` — Every decision traced to literature and implementation location
+- `docs/references.bib` — Machine-readable bibliography (verified against Crossref/arXiv)
+- `docs/RESULTS.md` — Results template, filled by `make reproduce`
 - `scripts/README.md` — Pipeline contracts and I/O specs
-- `ABOUT.md` — Portfolio showcase (problem, method, tech stack, results)
+- `CONTRIBUTING.md` — Setup, conventions, pre-push checks
+- `CHANGELOG.md` — Released and unreleased changes
+- `ABOUT.md` — Project overview (pipeline, contribution, stack)
 
 ---
 

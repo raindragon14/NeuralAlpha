@@ -88,9 +88,7 @@ def deflated_sharpe(
     }
 
 
-def pbo_cscv(
-    returns_matrix: pd.DataFrame, n_groups: int = 8
-) -> dict[str, float]:
+def pbo_cscv(returns_matrix: pd.DataFrame, n_groups: int = 8) -> dict[str, float]:
     """PBO via CSCV: probability the in-sample choice loses out-of-sample.
 
     The matrix has strategies as columns and dates as rows. Rows are
@@ -105,8 +103,8 @@ def pbo_cscv(
     segments = np.array_split(np.arange(n), n_groups)
     half = n_groups // 2
     logit: list[float] = []
-    for in_groups in itertools.combinations(range(n_groups), half):
-        in_groups = list(in_groups)
+    for in_combination in itertools.combinations(range(n_groups), half):
+        in_groups = list(in_combination)
         out_groups = [s for s in range(n_groups) if s not in in_groups]
         in_idx = np.concatenate([segments[s] for s in in_groups])
         out_idx = np.concatenate([segments[s] for s in out_groups])

@@ -1,3 +1,7 @@
-"""NeuralAlpha: Two-stage portfolio optimization with self-supervised MAE pre-training and CNN-BiLSTM preselection for LQ45 equities."""
+"""NeuralAlpha: two-stage portfolio optimization for LQ45 equities.
+
+Self-supervised MAE pre-training, CNN-BiLSTM preselection, and mean-variance
+optimization with Indonesian (IDX) transaction costs.
+"""
 
 __version__ = "0.1.0"

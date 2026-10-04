@@ -111,9 +111,7 @@ def test_significance() -> None:
 
     # Romano-Wolf: a strong persistent signal must be rejected, noise not.
     strong = pd.DataFrame({"s1": returns_b + 0.01, "s2": returns_b + 0.011})
-    table = romano_wolf_stepdown(
-        strong, returns_b, n_bootstrap=200, seed=0, block=21
-    )
+    table = romano_wolf_stepdown(strong, returns_b, n_bootstrap=200, seed=0, block=21)
     assert {"strategy", "t_stat", "critical_value", "reject", "step"}.issubset(
         table.columns
     )

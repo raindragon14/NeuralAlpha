@@ -1,4 +1,4 @@
-"""Model package: dataset, CNN-BiLSTM architecture, training, walk-forward, pre-training."""
+"""Model package: dataset, CNN-BiLSTM, training, walk-forward, pre-training."""
 
 from lq45.models.cnn_bilstm import CNNBiLSTM
 from lq45.models.dataset import (

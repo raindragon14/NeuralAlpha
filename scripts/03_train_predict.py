@@ -567,8 +567,9 @@ def smoke_summary(run_dir: Path, predictions: pd.DataFrame) -> None:
     correlation = predictions[["pred_raw", "true_raw"]].corr().iloc[0, 1]
     mse_raw = float(np.mean((predictions["pred_raw"] - predictions["true_raw"]) ** 2))
     print(
-        f"initial check: correlation between predictions and actual = {correlation:.4f} "
-        f"(a small value is expected), raw-space MSE = {mse_raw:.6f}"
+        "initial check: correlation between predictions and actual = "
+        f"{correlation:.4f} (a small value is expected), "
+        f"raw-space MSE = {mse_raw:.6f}"
     )
     log(
         run_dir,
@@ -678,9 +679,10 @@ def run_dry_run(args: argparse.Namespace) -> int:
             )
             for t in panel.tickers
         )
-        span = lambda ab: (
-            f"{panel.dates[ab[0]].date()} - {panel.dates[ab[1] - 1].date()}"
-        )
+
+        def span(ab: tuple[int, int]) -> str:
+            return f"{panel.dates[ab[0]].date()} - {panel.dates[ab[1] - 1].date()}"
+
         print(
             f"{fold.id:>3} {panel.dates[fold.train[1] - 1].date():>12} "
             f"{span(fold.validation):>23} {span(fold.test):>23} "
@@ -930,9 +932,9 @@ def run_pretrain(args: argparse.Namespace) -> int:
     for windows, n_train in stock_windows:
         flat = windows.transpose(0, 2, 1).reshape(-1, n_features)
         if prep is not None:
-            flat = prep.transform(
-                pd.DataFrame(flat, columns=FEATURE_COLUMNS)
-            ).to_numpy(dtype=np.float32)
+            flat = prep.transform(pd.DataFrame(flat, columns=FEATURE_COLUMNS)).to_numpy(
+                dtype=np.float32
+            )
         transformed = (
             flat.reshape(len(windows), lookback, n_features)
             .transpose(0, 2, 1)
@@ -1102,9 +1104,7 @@ def _fit_task(pairs: tuple[int, int]) -> tuple[int, int]:
     return fold_id, seed
 
 
-def run_walkforward(
-    args: argparse.Namespace, pretrained: bool = False
-) -> int:
+def run_walkforward(args: argparse.Namespace, pretrained: bool = False) -> int:
     """Run the full walk-forward (or smoke) and write the predictions.
 
     With `pretrained=True`, each fold fine-tunes the pre-trained

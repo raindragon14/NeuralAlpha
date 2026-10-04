@@ -30,3 +30,34 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+extend-exclude = [".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# Scripts and tests put src/ on sys.path before importing lq45, so imports
+# necessarily follow that call.
+"tests/*" = ["E402"]
+"scripts/*" = ["E402"]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+[tool.coverage.run]
+source = ["src/lq45"]
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError"]

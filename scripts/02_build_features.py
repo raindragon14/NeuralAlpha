@@ -73,6 +73,14 @@ def main() -> int:
         frame = pd.read_csv(path, parse_dates=["Date"]).set_index("Date")
         raw[ticker] = clean_prices(frame, calendar, ffill_days)
 
+    if not raw:
+        print(
+            f"no price files found for the configured universe in {RAW_DIR / 'prices'};"
+            " run 01_fetch_data.py first",
+            file=sys.stderr,
+        )
+        return 1
+
     panel = build_panel(raw, calendar, macro, horizon, periods)
 
     interim_dir = INTERIM_DIR / "prices_clean"

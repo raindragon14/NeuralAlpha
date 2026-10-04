@@ -105,16 +105,16 @@ def rank_ic_and_spread(
         )
     if not rank_ics:
         raise ValueError("no date with at least 3 complete predictions")
-    ic = np.asarray(rank_ics, dtype=float)
+    ic_arr = np.asarray(rank_ics, dtype=float)
     spread = np.asarray(spreads, dtype=float)
-    ic_std = float(ic.std(ddof=1)) if len(ic) > 1 else 0.0
+    ic_std = float(ic_arr.std(ddof=1)) if len(ic_arr) > 1 else 0.0
     return {
-        "rank_ic_mean": float(ic.mean()),
+        "rank_ic_mean": float(ic_arr.mean()),
         "rank_ic_std": ic_std,
-        "rank_ic_ir": float(ic.mean() / ic_std) if ic_std > 0 else 0.0,
+        "rank_ic_ir": float(ic_arr.mean() / ic_std) if ic_std > 0 else 0.0,
         "top_minus_bottom_mean": float(spread.mean()),
         "top_minus_bottom_std": float(spread.std(ddof=1)) if len(spread) > 1 else 0.0,
-        "n_dates": float(len(ic)),
+        "n_dates": float(len(ic_arr)),
     }
 
 

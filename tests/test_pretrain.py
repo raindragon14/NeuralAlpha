@@ -6,12 +6,15 @@ The data here is synthetic and only validates the pipeline, not results.
 import sys
 from pathlib import Path
 
+import numpy as np
 import torch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from lq45.models.pretrain import mae_loss, mask_input
+from lq45.models.decoder import MAEDecoder
+from lq45.models.encoder import CNNBiLSTMEncoder
+from lq45.models.pretrain import mae_loss, mask_input, pretrain_mae
 
 
 def test_masking_per_sample() -> None:
@@ -70,11 +73,50 @@ def test_mae_loss() -> None:
     assert float(mae_loss(pred, target, empty)) == 0.0
 
 
+def test_pretrain_mae_runs() -> None:
+    """The full pre-training loop must run and return usable state."""
+    torch.manual_seed(0)
+    encoder = CNNBiLSTMEncoder(
+        n_features=8,
+        filters=(4, 8),
+        kernel_size=3,
+        pooling=2,
+        units=8,
+        layers=1,
+        batchnorm=True,
+        dropout_cnn=0.0,
+        dropout_lstm=0.0,
+    )
+    decoder = MAEDecoder(
+        latent_dim=encoder.output_dim,
+        n_channels=8,
+        lookback=16,
+        pooling=2,
+        hidden=8,
+        layers=1,
+    )
+    rng = np.random.default_rng(0)
+    train_x = rng.normal(size=(4, 8, 16)).astype(np.float32)
+    val_x = rng.normal(size=(2, 8, 16)).astype(np.float32)
+
+    result = pretrain_mae(
+        encoder, decoder, train_x, val_x, epochs=2, batch_size=2, patience=2, seed=0
+    )
+    assert 1 <= len(result.history) <= 2
+    assert result.best_epoch >= 1
+    assert np.isfinite(result.best_val_loss)
+    assert result.encoder_state and result.decoder_state
+    assert result.wall_sec >= 0.0
+    # The returned encoder state must load back into the encoder.
+    encoder.load_state_dict(result.encoder_state)
+
+
 def main() -> int:
     test_masking_per_sample()
     test_masking_deterministic()
     test_mae_loss()
-    print("test_pretrain.py: 3 tests passed")
+    test_pretrain_mae_runs()
+    print("test_pretrain.py: 4 tests passed")
     return 0
 
 

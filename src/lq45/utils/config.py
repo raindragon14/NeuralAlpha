@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -9,10 +10,14 @@ from typing import Any
 import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
-CONFIG_DIR = ROOT / "configs"
-DATA_DIR = ROOT / "data"
-REPORT_DIR = ROOT / "reports"
-EXPERIMENT_DIR = ROOT / "experiments"
+
+# Data and output locations are overridable so the pipeline can run against a
+# sandboxed tree (tests, CI) without touching the working copy. Configs stay
+# with the code unless LQ45_CONFIG_DIR says otherwise.
+CONFIG_DIR = Path(os.environ.get("LQ45_CONFIG_DIR", ROOT / "configs"))
+DATA_DIR = Path(os.environ.get("LQ45_DATA_DIR", ROOT / "data"))
+REPORT_DIR = Path(os.environ.get("LQ45_REPORT_DIR", ROOT / "reports"))
+EXPERIMENT_DIR = Path(os.environ.get("LQ45_EXPERIMENT_DIR", ROOT / "experiments"))
 
 RAW_DIR = DATA_DIR / "raw"
 INTERIM_DIR = DATA_DIR / "interim"
@@ -25,7 +30,10 @@ def load_config(name: str) -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"configuration not found: {path}")
     with path.open(encoding="utf-8") as handle:
-        return yaml.safe_load(handle)
+        data = yaml.safe_load(handle)
+    if not isinstance(data, dict):
+        raise ValueError(f"configuration must be a YAML mapping: {path}")
+    return data
 
 
 def ensure_dirs(*paths: Path) -> None:

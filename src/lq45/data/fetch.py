@@ -11,6 +11,7 @@ The functions here return the data as-is; cleaning is done at the next stage
 from __future__ import annotations
 
 import io
+import logging
 import re
 import time
 import zipfile
@@ -27,6 +28,8 @@ _USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/124 Safari/537.36"
 )
+
+_logger = logging.getLogger(__name__)
 
 
 def _session() -> requests.Session:
@@ -75,9 +78,16 @@ def fetch_equities(
                     threads=False,
                 )
                 break
-            except Exception:
+            except Exception as exc:  # yfinance raises several unrelated types
                 if attempt == retries - 1:
                     raise
+                _logger.warning(
+                    "download failed for %s (attempt %d/%d): %s",
+                    ticker,
+                    attempt + 1,
+                    retries,
+                    exc,
+                )
                 time.sleep(2)
         if frame is None or frame.empty:
             results[ticker] = None
@@ -109,12 +119,16 @@ def _xlsx_rows(content: bytes) -> list[dict[str, str]]:
         cell_values: dict[str, str] = {}
         for c in row.findall(f"{_XLSX_NS}c"):
             ref = c.get("r", "")
-            column = re.match(r"[A-Z]+", ref).group(0)
+            match = re.match(r"[A-Z]+", ref)
+            if match is None:
+                continue
+            column = match.group(0)
             value = c.find(f"{_XLSX_NS}v")
-            if c.get("t") == "s" and value is not None:
-                cell_values[column] = shared[int(value.text)]
+            text = value.text if value is not None else None
+            if c.get("t") == "s" and text is not None:
+                cell_values[column] = shared[int(text)]
             else:
-                cell_values[column] = value.text if value is not None else ""
+                cell_values[column] = text or ""
         rows.append(cell_values)
     return rows
 
@@ -180,7 +194,9 @@ def _bi_next_target(html: str) -> str | None:
     for match in re.finditer(r"<input type=\"image\"[^>]*>", html):
         tag = match.group(0)
         if "DataPagerBI7DRR" in tag and "next" in tag and "disabled" not in tag:
-            return re.search(r'name="([^"]+)"', tag).group(1)
+            name = re.search(r'name="([^"]+)"', tag)
+            if name is not None:
+                return name.group(1)
     return None
 
 

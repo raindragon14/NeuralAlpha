@@ -99,6 +99,8 @@ def load_prices() -> pd.DataFrame:
     for csv_path in sorted((INTERIM_DIR / "prices_clean").glob("*.csv")):
         ticker = csv_path.stem + ".JK"
         frame = pd.read_csv(csv_path, parse_dates=["Date"]).set_index("Date")
+        if "Adj Close" not in frame.columns:
+            raise ValueError(f"{csv_path} is missing the 'Adj Close' column")
         frames[ticker] = frame["Adj Close"]
     prices = pd.DataFrame(frames).sort_index()
     prices.index = pd.to_datetime(prices.index)
@@ -123,6 +125,9 @@ def prediction_frame(path: Path) -> pd.DataFrame:
         DataFrame with the out-of-sample predictions and its index reset.
     """
     frame = pd.read_csv(path, parse_dates=["date"])
+    missing = {"date", "ticker", "pred_raw"}.difference(frame.columns)
+    if missing:
+        raise ValueError(f"{path} is missing columns: {sorted(missing)}")
     frame["date"] = frame["date"].dt.strftime("%Y-%m-%d")
     return frame.reset_index(drop=True)
 
@@ -223,9 +228,9 @@ def baselines(
             mark(pos)
     equity_1n = pd.Series(equities, index=dates, dtype=float).ffill()
 
-    ihsg = pd.read_csv(
-        RAW_DIR / "benchmark_ihsg.csv", parse_dates=["Date"]
-    ).set_index("Date")
+    ihsg = pd.read_csv(RAW_DIR / "benchmark_ihsg.csv", parse_dates=["Date"]).set_index(
+        "Date"
+    )
     ihsg.index = pd.to_datetime(ihsg.index)
     ihsg_oos = ihsg[ihsg.index.isin(dates)].sort_index()["Adj Close"]
     equity_ihsg = ihsg_oos / ihsg_oos.iloc[0] * capital
@@ -341,8 +346,8 @@ def main() -> int:
                             )
                             if progress % 100 == 0 or progress == total:
                                 print(
-                                    f"[{progress}/{total}] {optimizer_type} {mode_name} "
-                                    f"k={k} {est} L={length} maxw={maxw}",
+                                    f"[{progress}/{total}] {optimizer_type} "
+                                    f"{mode_name} k={k} {est} L={length} maxw={maxw}",
                                     flush=True,
                                 )
     baselines(
