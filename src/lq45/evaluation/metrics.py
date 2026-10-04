@@ -1,6 +1,6 @@
 """Portfolio evaluation metrics: risk, return, and implicit costs.
 
-Basis (details: docs/keputusan_desain.md):
+Basis (details: docs/DECISIONS.md):
 - Sharpe, Sortino, Calmar, MDD, turnover: Malhotra et al. (2023) use
   Sharpe/Sortino/Omega as mutual-fund standards; Wang & Liu (2025)
   define risk-sensitive evaluation (Sharpe/Sortino/Calmar).

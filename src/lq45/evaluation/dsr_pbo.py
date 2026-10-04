@@ -1,6 +1,6 @@
 """Deflated Sharpe Ratio and Probability of Backtest Overfitting.
 
-Basis (details: docs/keputusan_desain.md):
+Basis (details: docs/DECISIONS.md):
 - DSR: Bailey & Lopez de Prado (2014) correct the Sharpe ratio for the
   number of trials and non-normality (skew, kurtosis).
 - PBO/CSCV: Bailey et al. (2016) measure the probability that the

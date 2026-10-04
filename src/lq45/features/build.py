@@ -1,6 +1,6 @@
 """Feature, indicator, macro, and target construction.
 
-Source of each choice (details: docs/keputusan_desain.md):
+Source of each choice (details: docs/DECISIONS.md):
 - `Adj Close` price level and volume: Sebastian & Tantia (2024); Sen & Dutta (2021).
 - RSI, CCI, CMO, MFI: Espiga-Fernandez et al. (2024) Appendix B.
 - BI-7DRRR level and JISDOR log-return: extension to fill the gap in

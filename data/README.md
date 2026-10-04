@@ -2,7 +2,7 @@
 
 > **Role:** data sources, feature definitions, and limitations.
 > **Audience:** public.
-> **Not for:** rationale for decisions (see `docs/keputusan_desain.md`) or the
+> **Not for:** rationale for decisions (see `docs/DECISIONS.md`) or the
 > script order (see `scripts/README.md`).
 
 The research data is not included in the repository (file size and source terms).
@@ -66,7 +66,7 @@ Limitations that must be stated:
 ## Features and target
 
 Eight features per stock. Specification: `configs/experiment.yaml`; decision
-trail: `docs/keputusan_desain.md`.
+trail: `docs/DECISIONS.md`.
 
 | Feature | Value | Source |
 |---|---|---|

@@ -1,4 +1,4 @@
-# Decision log: docs/keputusan_desain.md
+# Decision log: docs/DECISIONS.md
 
 device: auto  # "auto" -> CUDA if available, otherwise CPU
 

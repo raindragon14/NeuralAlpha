@@ -151,7 +151,7 @@ Key options: `--seeds 0,1,2,3,4`, `--jobs 4` (max 4 with 7 GiB RAM), `--threads`
 ```
 configs/           YAML configs (model, split, portfolio, data, experiment, universe)
 data/              raw/, interim/, processed/ (gitignored — see data/README.md)
-docs/              keputusan_desain.md (decision log), references.bib, RESULTS.md
+docs/              DECISIONS.md (decision log), references.bib, RESULTS.md
 scripts/           Numbered pipeline 01_fetch → 05_evaluate
 src/lq45/          Package: data, features, models, portfolio, evaluation, utils
 tests/             unit tests + tests/test_pipeline_smoke.py (offline end-to-end)
@@ -196,7 +196,7 @@ they will be written into; `make reproduce` regenerates them from scratch.
 ## Documentation
 
 - `data/README.md` — Data sources, feature definitions, limitations
-- `docs/keputusan_desain.md` — Every decision traced to literature and implementation location
+- `docs/DECISIONS.md` — Every decision traced to literature and implementation location
 - `docs/references.bib` — Machine-readable bibliography (verified against Crossref/arXiv)
 - `docs/RESULTS.md` — Results template, filled by `make reproduce`
 - `scripts/README.md` — Pipeline contracts and I/O specs

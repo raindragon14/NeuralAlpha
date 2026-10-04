@@ -30,7 +30,7 @@ role lives in the `role` column and the stage-5 evaluation filters
 `role=test`.
 
 Specification: configs/model.yaml, configs/split.yaml, configs/universe.yaml.
-Decision log: docs/keputusan_desain.md.
+Decision log: docs/DECISIONS.md.
 """
 
 from __future__ import annotations

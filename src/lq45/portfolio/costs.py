@@ -1,6 +1,6 @@
 """Indonesian retail transaction-cost simulation with 100-share lots.
 
-Basis (details: docs/keputusan_desain.md):
+Basis (details: docs/DECISIONS.md):
 - Buy fee 0.19%, sell fee 0.29%, 100-share lot following Indonesian
   retail securities rules (A8).
 - Monthly rebalancing every 21 trading days: Espiga-Fernandez et al.

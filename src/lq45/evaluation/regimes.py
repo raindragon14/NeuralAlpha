@@ -1,6 +1,6 @@
 """Market-regime splits for strategy robustness tests.
 
-Basis (details: docs/keputusan_desain.md):
+Basis (details: docs/DECISIONS.md):
 - COVID regime test: Huang et al. (2024) test robustness during COVID.
 - OOS regimes: COVID 2020 and the 2021-2025 recovery/rate-hike period;
   the 2018-2019 design period is calm and is not used for evaluation

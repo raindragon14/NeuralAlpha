@@ -33,7 +33,7 @@ CI runs the same checks on Python 3.12 and 3.13.
 | `src/lq45/` | package: `data`, `features`, `models`, `portfolio`, `evaluation`, `utils` |
 | `scripts/` | numbered pipeline stages `01`–`05` |
 | `tests/` | unit tests; `tests/fixtures/` feeds the offline smoke test |
-| `docs/` | `keputusan_desain.md` (decision log), `references.bib` |
+| `docs/` | `DECISIONS.md` (decision log), `references.bib` |
 | `reports/` | generated output (gitignored except `.gitkeep` and `*.md`) |
 
 ## Conventions
@@ -41,7 +41,7 @@ CI runs the same checks on Python 3.12 and 3.13.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/):
   `type(scope): imperative subject`, lowercase (e.g.
   `fix(evaluation): correct the DSR trial variance`).
-- Every research decision goes in `docs/keputusan_desain.md` with its
+- Every research decision goes in `docs/DECISIONS.md` with its
   literature basis and the code location that implements it.
 - New citations must be verified against the DOI or arXiv record before they
   are added to `docs/references.bib`; do not write bibliographic metadata from

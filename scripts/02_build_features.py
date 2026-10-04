@@ -6,7 +6,7 @@ Outputs:
 - ``data/processed/features/<TICKER>.csv``  : 8 features + the ``target`` column
 
 Feature specification: configs/experiment.yaml
-Decision log: docs/keputusan_desain.md
+Decision log: docs/DECISIONS.md
 """
 
 from __future__ import annotations

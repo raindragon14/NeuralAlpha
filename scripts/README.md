@@ -3,7 +3,7 @@
 > **Role:** pipeline order and the output of each stage.
 > **Audience:** public.
 > **Not for:** feature definitions (see `data/README.md`) or decision rationale
-> (see `docs/keputusan_desain.md`).
+> (see `docs/DECISIONS.md`).
 
 Numbered pipeline, run in order:
 
@@ -21,7 +21,7 @@ Note: `01_fetch_data.py` requires network access to Yahoo Finance and Bank Indon
 
 Train a shared CNN-BiLSTM across 43 stocks, then write walk-forward predictions. **New:** `pretrain` mode (self-supervised MAE) and `walk-forward-pretrain` mode (pre-train → fine-tune).
 
-The architecture and split specifications are in `configs/model.yaml` and `configs/split.yaml`; the rationale for each value is in `docs/keputusan_desain.md`.
+The architecture and split specifications are in `configs/model.yaml` and `configs/split.yaml`; the rationale for each value is in `docs/DECISIONS.md`.
 
 ```
 python3 scripts/03_train_predict.py --mode dry-run        # inspect the 65-fold table

@@ -1,6 +1,6 @@
 """Covariance estimators for minimum-variance optimization.
 
-Basis (details: docs/keputusan_desain.md):
+Basis (details: docs/DECISIONS.md):
 - Comparison of four estimators rather than assuming a single winner:
   DeMiguel et al. (2009) show that 1/N is hard to beat, so any claim of
   estimator superiority must be tested; Ledoit & Wolf (2004) propose

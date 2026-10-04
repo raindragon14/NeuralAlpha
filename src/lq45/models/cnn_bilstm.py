@@ -1,6 +1,6 @@
 """CNN-BiLSTM architecture for return prediction.
 
-Architecture choices (details: docs/keputusan_desain.md):
+Architecture choices (details: docs/DECISIONS.md):
 - Two-layer CNN 32 -> 64: Espiga-Fernandez et al. (2024) Table 3.
 - Kernel 3: Chaweewanchon & Chaysiri (2022) use 3x3 convolutions.
 - Two-layer BiLSTM: Graves, Mohamed & Hinton (2013) introduce stacked
@@ -13,7 +13,7 @@ Architecture choices (details: docs/keputusan_desain.md):
   convolution and Linear layers).
 
 Implementation choices not specified by the papers and recorded in
-docs/keputusan_desain.md: `same` padding for the convolutions, the
+docs/DECISIONS.md: `same` padding for the convolutions, the
 Conv -> BatchNorm -> ReLU order, and the default PyTorch initialization.
 
 Version 2: the encoder was split out into `encoder.py` for pre-training.

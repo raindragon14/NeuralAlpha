@@ -11,7 +11,7 @@ Outputs (`--out`, default `reports/`):
 - `dsr_pbo.json`         : DSR of the best strategy and PBO of the main grid
 - `figures/`             : equity curves, drawdown, Sharpe comparison
 
-Decision log: docs/keputusan_desain.md sections E and H.
+Decision log: docs/DECISIONS.md sections E and H.
 """
 
 from __future__ import annotations

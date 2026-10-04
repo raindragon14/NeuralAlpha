@@ -21,7 +21,7 @@ Methodology:
     to the mean pred_ens (Chaweewanchon & Chaysiri 2022, Section 3.1).
     GMV is not used.
 
-Decision log: docs/keputusan_desain.md sections E and H.
+Decision log: docs/DECISIONS.md sections E and H.
 """
 
 from __future__ import annotations

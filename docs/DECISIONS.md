@@ -1,5 +1,8 @@
 # Design Decision Log
 
+> Renamed from `keputusan_desain.md` on 2026-10-04; the content was
+> already English, only the filename was not.
+
 > **Role:** the single source of the decision trail -> rationale (paper + location) and
 > implementation location.
 > **Audience:** public.
@@ -64,7 +67,7 @@ without relying on memory.
 | Scale | Min-max scaler | Sebastian & Tantia (2024) data pre-processing section | `src/lq45/features/preprocess.py` `RobustPreprocessor.feature_range` | final |
 | Transformation scope | Features **and** target | Sebastian & Tantia (2024) handle outliers across the entire dataset before modeling | `scripts/03_train_predict.py` `scale_panel` | final |
 | *Fit* point | Only the training data of each walk-forward window | **Principle**, not a citation: preventing look-ahead information leakage | `src/lq45/features/preprocess.py` | final |
-| Rejected alternative | Huber location (Chaweewanchon & Chaysiri 2022 Section 3.5.2, `k=1.435`) | The paper does not explain standardization before Huber, so `k=1.435` on raw prices effectively becomes the median; hard to replicate exactly | `docs/keputusan_desain.md` | final |
+| Rejected alternative | Huber location (Chaweewanchon & Chaysiri 2022 Section 3.5.2, `k=1.435`) | The paper does not explain standardization before Huber, so `k=1.435` on raw prices effectively becomes the median; hard to replicate exactly | `docs/DECISIONS.md` | final |
 
 ## Target and Training
 
@@ -72,7 +75,7 @@ without relying on memory.
 |---|---|---|---|---|
 | Target | 5-day-ahead log-return | Consistent with the horizon `tau=5` and monthly holding | `configs/model.yaml` `horizon_days` | final |
 | Loss function | MSE | Chaweewanchon & Chaysiri (2022) hyperparameter selection section ("Mean Squared Error (MSE) was used as the loss function"); Kim et al. (2025) ("standard loss function (e.g., mean squared error)") | `src/lq45/models/training.py` `_run_epochs` | final |
-| Rejected loss alternative | Huber loss | Not used by any paper in the folder; the robustness requirement is already handled by winsorization (Sebastian & Tantia 2024); MV requires a mean estimate, not a median | `docs/keputusan_desain.md` | final |
+| Rejected loss alternative | Huber loss | Not used by any paper in the folder; the robustness requirement is already handled by winsorization (Sebastian & Tantia 2024); MV requires a mean estimate, not a median | `docs/DECISIONS.md` | final |
 | Look-back window | `w=60` | Independent decision (common practice, bias-variance trade-off); tested in the window sensitivity analysis | `configs/model.yaml` `lookback_days` | final |
 | Prediction horizon | `tau=5` | Independent decision (consistent with monthly holding); tested in the window sensitivity analysis | `configs/model.yaml` | final |
 | Covariance estimation window | `L=120` | No paper sets it; sensitivity tested at the portfolio stage (L tested at 60, 120, 252) | `configs/portfolio.yaml` | final |

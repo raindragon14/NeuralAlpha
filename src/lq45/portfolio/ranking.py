@@ -1,6 +1,6 @@
 """Rank stocks from ensemble predictions for top-k preselection.
 
-Basis (details: docs/keputusan_desain.md):
+Basis (details: docs/DECISIONS.md):
 - Preselect then optimize: Wang et al. (2020) use deep learning for
   preselection before portfolio construction; Huang et al. (2024) use a
   two-stage approach with prescreening before Global Minimum Variance.

@@ -7,7 +7,7 @@ costs, and evaluates the result with the validation battery used in the
 backtest-overfitting literature.
 
 This file is the project overview. For the method, see the `README.md`; for the
-decision trail, see `docs/keputusan_desain.md`.
+decision trail, see `docs/DECISIONS.md`.
 
 ## Pipeline
 
@@ -38,7 +38,7 @@ The contribution is empirical rather than architectural:
   as well as through portfolio metrics, because the portfolio stage consumes
   only the ordering.
 - Every research decision is traced to its literature basis and the code that
-  implements it, in `docs/keputusan_desain.md`.
+  implements it, in `docs/DECISIONS.md`.
 
 ## Status
 

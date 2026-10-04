@@ -1,6 +1,6 @@
 """Feature panel and sliding windows for the pooled model across all stocks.
 
-Underlying decisions (details: docs/keputusan_desain.md):
+Underlying decisions (details: docs/DECISIONS.md):
 - A single pooled model for all stocks: Espiga-Fernandez et al. (2024)
   use a `lookback x instruments x features` tensor; Huang et al. (2024)
   use a `32 x 15` tensor.

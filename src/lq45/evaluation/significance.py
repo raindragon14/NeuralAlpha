@@ -1,6 +1,6 @@
 """Sharpe significance tests and multiple-testing corrections.
 
-Basis (details: docs/keputusan_desain.md):
+Basis (details: docs/DECISIONS.md):
 - Ledoit & Wolf (2008) Sharpe test: robustifies Jobson & Korkie (1981)
   against non-normality and time-series dependence via HAC (E15).
 - Romano & Wolf (2005): stepdown for data snooping; used together with

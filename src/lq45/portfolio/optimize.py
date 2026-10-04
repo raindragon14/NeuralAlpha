@@ -1,6 +1,6 @@
 """Minimum-variance and mean-variance weight optimization with IDX retail constraints.
 
-Basis (details: docs/keputusan_desain.md):
+Basis (details: docs/DECISIONS.md):
 - Long-only and weights summing to one: Markowitz (1952); shorting is
   not allowed in IDX retail trading (E10).
 - Maximum weight 35% is an independent decision; tested at 25%, 35%,
