@@ -89,7 +89,7 @@ def deflated_sharpe(
 
 
 def pbo_cscv(
-    returns_matrix: pd.DataFrame, n_groups: int = 8, seed: int = 0
+    returns_matrix: pd.DataFrame, n_groups: int = 8
 ) -> dict[str, float]:
     """PBO via CSCV: probability the in-sample choice loses out-of-sample.
 
@@ -99,7 +99,6 @@ def pbo_cscv(
     its out-of-sample rank; PBO = probability of a negative logit
     (Bailey et al. 2016).
     """
-    rng = np.random.default_rng(seed)
     frame = returns_matrix.dropna()
     n = len(frame)
     n_strat = len(frame.columns)
@@ -119,7 +118,6 @@ def pbo_cscv(
         # Positive logit when the in-sample best ranks above the
         # out-of-sample median; PBO = probability of a negative logit.
         logit.append(math.log((n_strat + 1.0 - position) / position))
-    _ = rng  # seed recorded for audit; the combinatorial split is standard
     logit_arr = np.array(logit, dtype=float)
     return {
         "pbo": float((logit_arr < 0).mean()) if len(logit_arr) else 0.5,

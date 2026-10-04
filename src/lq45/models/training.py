@@ -79,43 +79,23 @@ def predict(
     return _predict_tensor(model, x, batch_size, device).cpu().numpy()
 
 
-def train_model(
+def _run_epochs(
     model: nn.Module,
-    train_xy: tuple[np.ndarray, np.ndarray],
+    loader: DataLoader,
     val_xy: tuple[np.ndarray, np.ndarray],
     batch_size: int,
+    optimizer: torch.optim.Optimizer,
     epochs: int,
     patience: int,
-    lr: float,
-    weight_decay: float,
     seed: int,
     device: torch.device,
 ) -> FitResult:
-    """Train `model` with early stopping on the validation loss.
+    """Train with early stopping on the validation loss.
 
-    The weights with the best validation loss are restored before the
-    function returns. The model should be built via `build_model` so the
-    initial weights are deterministic; this function still seeds before
-    the training loop.
+    Shared by `train_model` and `fine_tune_model`; the weights with the best
+    validation loss are restored before returning.
     """
-    x_train, y_train = train_xy
     x_val, y_val = val_xy
-    if len(y_train) == 0 or len(y_val) == 0:
-        raise ValueError(
-            f"empty training set: {len(y_train)} train rows, "
-            f"{len(y_val)} validation rows"
-        )
-
-    generator = set_seed(seed)
-    model.to(device)
-    dataset = TensorDataset(torch.from_numpy(x_train), torch.from_numpy(y_train))
-    loader = DataLoader(
-        dataset, batch_size=batch_size, shuffle=True, generator=generator
-    )
-
-    # Adam and learning rate: Chaweewanchon & Chaysiri (2022) Section 4.1.3;
-    # Sebastian & Tantia (2024).
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     # MSE: Chaweewanchon & Chaysiri (2022); Kim et al. (2025).
     loss_fn = nn.MSELoss()
     y_val_tensor = torch.from_numpy(y_val).to(device)
@@ -175,6 +155,48 @@ def train_model(
     )
 
 
+def train_model(
+    model: nn.Module,
+    train_xy: tuple[np.ndarray, np.ndarray],
+    val_xy: tuple[np.ndarray, np.ndarray],
+    batch_size: int,
+    epochs: int,
+    patience: int,
+    lr: float,
+    weight_decay: float,
+    seed: int,
+    device: torch.device,
+) -> FitResult:
+    """Train `model` with early stopping on the validation loss.
+
+    The weights with the best validation loss are restored before the
+    function returns. The model should be built via `build_model` so the
+    initial weights are deterministic; this function still seeds before
+    the training loop.
+    """
+    x_train, y_train = train_xy
+    _, y_val = val_xy
+    if len(y_train) == 0 or len(y_val) == 0:
+        raise ValueError(
+            f"empty training set: {len(y_train)} train rows, "
+            f"{len(y_val)} validation rows"
+        )
+
+    generator = set_seed(seed)
+    model.to(device)
+    dataset = TensorDataset(torch.from_numpy(x_train), torch.from_numpy(y_train))
+    loader = DataLoader(
+        dataset, batch_size=batch_size, shuffle=True, generator=generator
+    )
+
+    # Adam and learning rate: Chaweewanchon & Chaysiri (2022) Section 4.1.3;
+    # Sebastian & Tantia (2024).
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+    return _run_epochs(
+        model, loader, val_xy, batch_size, optimizer, epochs, patience, seed, device
+    )
+
+
 def fine_tune_model(
     model: CNNBiLSTM,
     train_xy: tuple[np.ndarray, np.ndarray],
@@ -206,7 +228,7 @@ def fine_tune_model(
         FitResult with the best state
     """
     x_train, y_train = train_xy
-    x_val, y_val = val_xy
+    _, y_val = val_xy
     if len(y_train) == 0 or len(y_val) == 0:
         raise ValueError(
             f"empty training set: {len(y_train)} train rows, "
@@ -233,59 +255,6 @@ def fine_tune_model(
     )
 
     optimizer = torch.optim.Adam(params, weight_decay=weight_decay)
-    loss_fn = nn.MSELoss()
-    y_val_tensor = torch.from_numpy(y_val).to(device)
-
-    best = float("inf")
-    best_epoch = 0
-    best_state: dict[str, Any] = {}
-    wait = 0
-    history: list[dict[str, float]] = []
-
-    for epoch in range(1, epochs + 1):
-        model.train()
-        total = 0.0
-        count = 0
-        for xb, yb in loader:
-            xb, yb = xb.to(device), yb.to(device)
-            optimizer.zero_grad()
-            loss = loss_fn(model(xb), yb)
-            loss.backward()
-            optimizer.step()
-            total += loss.item() * len(yb)
-            count += len(yb)
-        train_loss = total / max(count, 1)
-
-        model.eval()
-        with torch.no_grad():
-            pred = _predict_tensor(model, x_val, batch_size, device)
-            val_loss = float(loss_fn(pred, y_val_tensor).item())
-        history.append(
-            {
-                "epoch": float(epoch),
-                "train_loss": train_loss,
-                "val_loss": val_loss,
-            }
-        )
-
-        if val_loss < best:
-            best = val_loss
-            best_epoch = epoch
-            best_state = {
-                key: value.clone() for key, value in model.state_dict().items()
-            }
-            wait = 0
-        else:
-            wait += 1
-            if wait >= patience:
-                break
-
-    model.load_state_dict(best_state)
-    return FitResult(
-        seed=seed,
-        best_val_loss=best,
-        best_epoch=best_epoch,
-        stopped_early=epoch < epochs,
-        state_dict=best_state,
-        history=history,
+    return _run_epochs(
+        model, loader, val_xy, batch_size, optimizer, epochs, patience, seed, device
     )

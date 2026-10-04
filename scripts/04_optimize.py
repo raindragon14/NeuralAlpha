@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
 import time
 from datetime import UTC, datetime
@@ -45,7 +44,9 @@ from lq45.portfolio.ranking import ensemble_predictions
 from lq45.utils.config import (
     EXPERIMENT_DIR,
     INTERIM_DIR,
+    RAW_DIR,
     ensure_dirs,
+    git_sha,
     load_config,
 )
 
@@ -83,24 +84,6 @@ def parse_args() -> argparse.Namespace:
         help="rank the ensemble only, or also per seed",
     )
     return parser.parse_args()
-
-
-def git_sha() -> str:
-    """Return the short (7-character) commit hash of the repository root.
-
-    Returns:
-        Short SHA hash string, or `"unknown"` if Git is unavailable.
-    """
-    try:
-        result = subprocess.run(
-            ["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return result.stdout.strip()
-    except (OSError, subprocess.CalledProcessError):
-        return "unknown"
 
 
 def load_prices() -> pd.DataFrame:
@@ -241,7 +224,7 @@ def baselines(
     equity_1n = pd.Series(equities, index=dates, dtype=float).ffill()
 
     ihsg = pd.read_csv(
-        ROOT / "data" / "raw" / "benchmark_ihsg.csv", parse_dates=["Date"]
+        RAW_DIR / "benchmark_ihsg.csv", parse_dates=["Date"]
     ).set_index("Date")
     ihsg.index = pd.to_datetime(ihsg.index)
     ihsg_oos = ihsg[ihsg.index.isin(dates)].sort_index()["Adj Close"]

@@ -24,27 +24,19 @@ dropout:
   dense: 0.2 # Sebastian & Tantia (2024); tuned on the design period
 
 optimizer:
-  name: adam
   lr: 0.0001       # Chaweewanchon & Chaysiri (2022) Section 4.1.3
   weight_decay: 0.0  # tuned on the design period (0 vs 1e-4)
-
-loss:
-  name: mse  # Chaweewanchon & Chaysiri (2022); Kim et al. (2025)
 
 epochs: 100      # Chaweewanchon & Chaysiri (2022); Sebastian & Tantia (2024)
 
 early_stopping:
   patience: 8    # Sebastian & Tantia (2024)
-  monitor: validation_loss
 
 batch_size: 32   # default sebelum tuning; best_hyperparams.yaml overrides (batch 64)
-
-seeds: [0, 1, 2, 3, 4]  # Reimers & Gurevych (2017); Bouthillier et al. (2021)
 
 tuning:
   train: "2018-01-01/2018-12-31"
   validate: "2019-01-01/2019-12-31"
-  selection_metric: validation_loss
   grid:
     bilstm.units: [32, 64, 128]
     batch_size: [32, 64]
@@ -60,8 +52,6 @@ sensitivity:
 # Input = the supervised FEATURE_COLUMNS panel, so the encoder transfers unchanged.
 pretrain:
   enabled: true
-  method: "mae"
-  input_channels: 8          # FEATURE_COLUMNS (same panel as the supervised model)
   data_end: "2019-12-31"     # pre-train sees nothing after the design period
   mask_ratio: 0.3            # MAE standard (He et al. 2022)
   epochs: 50

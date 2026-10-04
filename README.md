@@ -74,9 +74,9 @@ checks covering COVID-19 and the 2021–2025 rate-hike cycle.
 ## Quick Start
 
 ### Prerequisites
-- Python 3.11+ (tested on 3.14.7)
+- Python 3.11+ (tested on 3.13.5)
 - PyTorch 2.14+ (CPU)
-- 7 GB RAM minimum (limits parallel jobs to 4)
+- 7 GiB RAM minimum (limits parallel jobs to 4)
 
 ```bash
 # Clone and set up

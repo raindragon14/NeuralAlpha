@@ -1,24 +1,12 @@
-universe:
-  index: LQ45
-  # Candidate pool is read from configs/universe.yaml: the 45 official constituents
-  # of the August 2019 - January 2020 period (composition at the start of the OOS).
-  constituents: configs/universe.yaml
-
 period:
   start: "2018-01-01"
   end: "2025-12-31"
 
 sources:
-  price: yahoo_finance_jk          # .JK adjusted close (secondary; cross-validated)
-  price_field: adjusted_close
-  fx: bi_jisdor                    # official Bank Indonesia reference exchange rate
-  macro: [bi_7drrr, jisdor]
-  macro_lag: publication_date
   benchmark: "^JKSE"                # IHSG as buy-and-hold benchmark
 
 cleaning:
   forward_fill_max_days: 3
-  return_type: log
 
 costs:
   buy_fee: 0.0019

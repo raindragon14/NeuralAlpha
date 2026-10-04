@@ -89,7 +89,3 @@ class CNNBiLSTM(nn.Module):
         """Unfreeze the encoder for full fine-tuning."""
         for p in self.encoder.parameters():
             p.requires_grad = True
-
-    @property
-    def encoder_output_dim(self) -> int:
-        return self.encoder.output_dim

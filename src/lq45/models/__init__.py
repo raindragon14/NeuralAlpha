@@ -29,10 +29,8 @@ from lq45.models.training import (
 from lq45.models.walkforward import (
     DesignSplit,
     Fold,
-    PretrainSplit,
     design_split,
     make_folds,
-    make_pretrain_split,
 )
 
 __all__ = [
@@ -45,7 +43,6 @@ __all__ = [
     "MAEDecoder",
     "PanelData",
     "PretrainResult",
-    "PretrainSplit",
     "build_model",
     "build_pretrain_windows",
     "build_windows",
@@ -55,7 +52,6 @@ __all__ = [
     "load_panel",
     "load_pretrained_encoder",
     "make_folds",
-    "make_pretrain_split",
     "mask_input",
     "predict",
     "pretrain_mae",

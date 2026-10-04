@@ -19,6 +19,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from lq45.utils.config import stock_file_name
+
 FEATURE_COLUMNS: tuple[str, ...] = (
     "close",
     "volume",
@@ -43,11 +45,6 @@ class PanelData:
     features: dict[str, np.ndarray]  # (T, 8), in FEATURE_COLUMNS order
     target: dict[str, np.ndarray]  # (T,) horizon-day log-return
     close: dict[str, np.ndarray]  # (T,) adjusted closing price
-
-
-def stock_file_name(ticker: str) -> str:
-    """File name without the `.JK` suffix."""
-    return ticker.replace(".JK", "")
 
 
 def forward_log_return(close: np.ndarray, horizon: int) -> np.ndarray:
@@ -160,8 +157,6 @@ def build_windows(
     return windows[valid], label[valid], idx[valid]
 
 
-
-
 def build_pretrain_windows(
     features: np.ndarray,
     lookback: int,
@@ -174,15 +169,6 @@ def build_pretrain_windows(
         X: (N, C, lookback)
         idx: (N,) date positions
     """
-    first_index = max(start, lookback - 1)
-    n = stop - first_index
-    empty = np.empty((0, features.shape[1], lookback), dtype=np.float32)
-    if n <= 0:
-        return empty, np.empty(0, dtype=np.int64)
-
-    segment = features[first_index - lookback + 1 : stop]
-    windows = np.lib.stride_tricks.sliding_window_view(segment, lookback, axis=0)
-    idx = np.arange(first_index, stop, dtype=np.int64)
-
-    valid = ~np.isnan(windows).any(axis=(1, 2))
-    return windows[valid], idx[valid]
+    zeros = np.zeros(len(features), dtype=np.float32)
+    x, _, idx = build_windows(features, zeros, lookback, start, stop)
+    return x, idx

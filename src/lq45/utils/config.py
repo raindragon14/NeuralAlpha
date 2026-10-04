@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -31,3 +32,22 @@ def ensure_dirs(*paths: Path) -> None:
     """Create output directories if they do not already exist."""
     for path in paths:
         path.mkdir(parents=True, exist_ok=True)
+
+
+def git_sha() -> str:
+    """Short hash of the last commit; `unknown` if not a git repository."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return result.stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return "unknown"
+
+
+def stock_file_name(ticker: str) -> str:
+    """File name without the `.JK` suffix."""
+    return ticker.replace(".JK", "")

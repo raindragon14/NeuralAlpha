@@ -70,4 +70,4 @@ Metrics, significance, and regime robustness from the stage 4 output.
 python3 scripts/05_evaluate.py --portfolio <opt>/portfolio_returns.csv --baselines <opt>/baseline_returns.csv --weights <opt>/weights.csv
 ```
 
-Daily risk-free rate = annual BI-7DRRR divided by 252; annualization 252. `turnover_adjusted_sharpe` = Sharpe multiplied by (1 - turnover), where turnover is defined as the mean |weight difference|/2 per rebalancing.
+Daily risk-free rate = annual BI-7DRRR divided by 252; annualization 252. Turnover is reported as a diagnostic column: the mean |weight difference|/2 per rebalancing. Returns are already net of fees, so no turnover-adjusted Sharpe is computed.

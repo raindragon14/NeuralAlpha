@@ -4,11 +4,7 @@ initial_train_years: 2
 validation_days: 63              # ~3 months, early stopping + selection
 test_days: 21                    # 1 month, final evaluation
 step_days: 21                    # shift every month
-expanding: true
 
 purge:
   horizon_days: 5                # tau: drop training labels that fall inside validation
 embargo_days: 59                 # w-1
-
-design_period: ["2018-01-01", "2019-12-31"]   # to freeze architecture/hyperparameters
-freeze_hyperparameters: true

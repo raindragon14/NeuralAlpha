@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -35,6 +34,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from lq45.evaluation.dsr_pbo import deflated_sharpe, pbo_cscv
 from lq45.evaluation.metrics import (
     daily_risk_free_rate,
+    rank_ic_and_spread,
     summarize_series,
 )
 from lq45.evaluation.regimes import split_regimes
@@ -43,7 +43,7 @@ from lq45.evaluation.significance import (
     romano_wolf_stepdown,
     sharpe_difference_test_lw,
 )
-from lq45.utils.config import REPORT_DIR, load_config
+from lq45.utils.config import RAW_DIR, REPORT_DIR, git_sha, load_config
 
 
 def parse_args() -> argparse.Namespace:
@@ -54,21 +54,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--weights", type=Path, required=True)
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--top-n", type=int, default=10)
+    parser.add_argument(
+        "--predictions",
+        type=Path,
+        default=None,
+        help="stage-3 predictions.csv; enables the Rank IC / spread table",
+    )
     return parser.parse_args()
-
-
-def git_sha() -> str:
-    """Short commit hash of the last commit; `unknown` if it fails."""
-    try:
-        result = subprocess.run(
-            ["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return result.stdout.strip()
-    except (OSError, subprocess.CalledProcessError):
-        return "unknown"
 
 
 def config_key(frame: pd.DataFrame) -> pd.Series:
@@ -119,7 +111,7 @@ def main() -> int:
     portfolio["config"] = config_key(portfolio)
     date = pd.DatetimeIndex(sorted(portfolio["date"].unique()))
     rf = daily_risk_free_rate(
-        date, str(ROOT / "data" / "raw" / "macro" / "bi_7drrr.csv"), periods_per_year
+        date, str(RAW_DIR / "macro" / "bi_7drrr.csv"), periods_per_year
     )
     rf.index = date
     rows: list[dict] = []
@@ -146,6 +138,24 @@ def main() -> int:
         rows.append(summary)
     metrics = pd.DataFrame(rows).sort_values("sharpe", ascending=False)
     metrics.to_csv(out_dir / "metrics_table.csv", index=False)
+    # Rank quality of the stage-3 predictions, if they were provided.
+    if args.predictions is not None:
+        predictions = pd.read_csv(args.predictions, parse_dates=["date"])
+        predictions["date"] = predictions["date"].dt.strftime("%Y-%m-%d")
+        pred = predictions.groupby(["date", "ticker"], as_index=False)[
+            ["pred_raw", "true_raw"]
+        ].mean()
+        ranker = rank_ic_and_spread(pred)
+        pd.DataFrame([ranker]).to_csv(out_dir / "ranker_table.csv", index=False)
+        print(
+            f"ranker: Rank IC {ranker['rank_ic_mean']:.4f} "
+            f"(IR {ranker['rank_ic_ir']:.3f}), top-minus-bottom "
+            f"{ranker['top_minus_bottom_mean']:.5f} over "
+            f"{int(ranker['n_dates'])} dates",
+            flush=True,
+        )
+    else:
+        print("ranker table skipped (no --predictions)", flush=True)
     # OOS regime per configuration.
     regime_rows: list[dict] = []
     for key, returns in series.items():
@@ -210,7 +220,7 @@ def main() -> int:
     pbo_matrix = pd.DataFrame(
         {c: series[c] for c in metrics[metrics["seed_mode"] == "ensemble"]["config"]}
     )
-    pbo = pbo_cscv(pbo_matrix, n_groups=8, seed=0)
+    pbo = pbo_cscv(pbo_matrix, n_groups=8)
     (out_dir / "dsr_pbo.json").write_text(
         json.dumps(
             {

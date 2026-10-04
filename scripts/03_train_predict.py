@@ -39,7 +39,6 @@ import argparse
 import dataclasses
 import json
 import os
-import subprocess
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
@@ -85,7 +84,9 @@ from lq45.utils.config import (
     EXPERIMENT_DIR,
     PROCESSED_DIR,
     ensure_dirs,
+    git_sha,
     load_config,
+    stock_file_name,
 )
 
 DEFAULT_SEEDS = "0,1,2,3,4"
@@ -163,20 +164,6 @@ def new_run_dir(mode: str) -> Path:
     """Result directory name derived from the UTC timestamp."""
     timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     return EXPERIMENT_DIR / f"{mode}_{timestamp}"
-
-
-def git_sha() -> str:
-    """Short hash of the last commit; `unknown` if not a git repository."""
-    try:
-        result = subprocess.run(
-            ["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return result.stdout.strip()
-    except (OSError, subprocess.CalledProcessError):
-        return "unknown"
 
 
 def log(run_dir: Path, message: str) -> None:
@@ -327,8 +314,15 @@ def run_fit(
     device: torch.device,
     run_dir: Path,
     save_checkpoint: bool,
+    fine_tune: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Train one (fold, seed) then write the prediction part and metrics."""
+    """Train one (fold, seed) then write the prediction part and metrics.
+
+    With `fine_tune` unset the model trains from scratch. Otherwise the
+    pre-trained `encoder_seed{N}.pt` is loaded from
+    `fine_tune["pretrained_dir"]` and only fine-tuned. Both paths share the
+    prediction-row builder and the metrics below.
+    """
     start = time.time()
     features, target, _, target_prep = scale_panel(panel, fold.train)
     x_train, y_train = window_pool(
@@ -338,18 +332,45 @@ def run_fit(
     x_test, y_test = window_pool(panel, features, target, fold.test, [], lookback)
 
     model = build_model(model_kw, seed)
-    result = train_model(
-        model,
-        (x_train, y_train),
-        (x_val, y_val),
-        train_kw["batch_size"],
-        train_kw["epochs"],
-        train_kw["patience"],
-        train_kw["lr"],
-        train_kw["weight_decay"],
-        seed,
-        device,
-    )
+    if fine_tune is None:
+        result = train_model(
+            model,
+            (x_train, y_train),
+            (x_val, y_val),
+            train_kw["batch_size"],
+            train_kw["epochs"],
+            train_kw["patience"],
+            train_kw["lr"],
+            train_kw["weight_decay"],
+            seed,
+            device,
+        )
+    else:
+        pretrained_dir = fine_tune["pretrained_dir"]
+        pretrained_path = pretrained_dir / f"encoder_seed{seed}.pt"
+        if not pretrained_path.exists():
+            available = sorted(p.name for p in pretrained_dir.glob("encoder_seed*.pt"))
+            raise FileNotFoundError(
+                f"encoder_seed{seed}.pt is missing in {pretrained_dir}. "
+                f"Available: {available}"
+            )
+        load_pretrained_encoder(
+            model.encoder, torch.load(pretrained_path, map_location=device)
+        )
+        result = fine_tune_model(
+            model,
+            (x_train, y_train),
+            (x_val, y_val),
+            train_kw["batch_size"],
+            train_kw["epochs"],
+            train_kw["patience"],
+            fine_tune["head_lr"],
+            fine_tune["encoder_lr"],
+            fine_tune["weight_decay"],
+            seed,
+            device,
+            freeze_encoder=fine_tune["freeze_encoder"],
+        )
 
     pred_test = predict(model, x_test, train_kw["batch_size"], device)
     test_loss = float(np.mean((pred_test - y_test) ** 2))
@@ -493,7 +514,7 @@ def load_panel_data(tickers: list[str], horizon: int) -> PanelData:
     """
     directory = PROCESSED_DIR / "features"
     available = [
-        t for t in tickers if (directory / f"{t.replace('.JK', '')}.csv").exists()
+        t for t in tickers if (directory / f"{stock_file_name(t)}.csv").exists()
     ]
     missing = [t for t in tickers if t not in available]
     if missing:
@@ -1017,301 +1038,6 @@ def run_pretrain(args: argparse.Namespace) -> int:
     return 0
 
 
-def run_walkforward_pretrain(args: argparse.Namespace) -> int:
-    """Walk-forward with a pre-trained encoder: fine-tune per fold.
-
-    Flow:
-    1. Read the pre-trained encoder from `--pretrained-dir` (default
-       `run_dir/pretrained`); pre-training is NOT run automatically
-    2. Per fold: load `encoder_seed{N}.pt` for the seed -> fine-tune -> predict
-    """
-    model_cfg = load_config("model")
-    pretrain_cfg = model_cfg.get("pretrain", {})
-    split_cfg = load_config("split")
-    tickers = list(load_config("universe")["tickers"])
-
-    if args.mode == "smoke":
-        seeds = parse_seeds(args.seeds)[:1]
-        fold_limit = args.folds or 2
-        epoch_limit = args.epochs or 3
-    else:
-        seeds = parse_seeds(args.seeds)
-        fold_limit = args.folds
-        epoch_limit = args.epochs
-
-    tuned = load_tuning(args.use_tuning)
-    lookback = int(tuned.get("lookback_days", model_cfg["lookback_days"]))
-    horizon = int(tuned.get("horizon_days", model_cfg["horizon_days"]))
-    model_kw = model_kwargs(model_cfg, tuned)
-    train_kw = train_kwargs(model_cfg, tuned, epoch_limit)
-
-    device = resolve_device(model_cfg["device"])
-    threads = args.threads or torch.get_num_threads()
-    if args.jobs > 1 and not args.threads:
-        threads = max(1, min(4, (os.cpu_count() or 1) // args.jobs))
-    torch.set_num_threads(threads)
-
-    # Load the panel with the target (supervised)
-    panel = load_panel_data(tickers, horizon)
-    folds = make_folds(
-        len(panel.dates),
-        split_cfg,
-        purge_days=horizon,
-        embargo_days=lookback - 1,
-    )
-    if fold_limit:
-        folds = folds[:fold_limit]
-
-    run_dir = args.out or new_run_dir("walk-forward-pretrain")
-    pretrained_dir = args.pretrained_dir or (run_dir / "pretrained")
-    ensure_dirs(
-        run_dir / "predictions_parts",
-        run_dir / "checkpoints",
-        run_dir / "metrics",
-        run_dir / "pretrained",
-    )
-    log(
-        run_dir,
-        f"starting walk-forward-pretrain: {len(folds)} folds, {len(seeds)} seeds, "
-        f"jobs {args.jobs}, threads {threads}, device {device}",
-    )
-    log(run_dir, f"pre-trained encoder read from: {pretrained_dir}")
-
-    # Fine-tune config
-    ft_cfg = pretrain_cfg.get("fine_tune", {})
-    freeze_encoder = ft_cfg.get("freeze_encoder", False)
-    head_lr = ft_cfg.get("head_lr", 1e-4)
-    encoder_lr = ft_cfg.get("encoder_lr", 1e-5)
-    ft_weight_decay = pretrain_cfg.get("weight_decay", 0.0)
-
-    pairs = [(fold.id, seed) for fold in folds for seed in seeds]
-    pairs = [
-        p for p in pairs if not (args.resume and is_fold_done(run_dir, p[0], p[1]))
-    ]
-
-    if not pairs:
-        log(run_dir, "all pairs already done (resume mode)")
-    elif args.jobs <= 1:
-        for fold_id, seed in pairs:
-            fold = folds[fold_id]
-            metrics = run_fit_pretrain(
-                panel,
-                fold,
-                lookback,
-                model_kw,
-                train_kw,
-                seed,
-                device,
-                run_dir,
-                pretrained_dir,
-                not args.no_checkpoints,
-                freeze_encoder,
-                head_lr,
-                encoder_lr,
-                ft_weight_decay,
-            )
-            log(
-                run_dir,
-                f"fold {fold.id} seed {seed}: val "
-                f"{metrics['val_loss']:.6f}, test {metrics['test_loss']:.6f}, "
-                f"time {metrics['wall_sec']} seconds",
-            )
-    else:
-        # Parallel execution would need panel pickling - skip for now
-        log(
-            run_dir,
-            "parallel jobs are not supported for walk-forward-pretrain "
-            "(use --jobs 1)",
-        )
-        for fold_id, seed in pairs:
-            fold = folds[fold_id]
-            metrics = run_fit_pretrain(
-                panel,
-                fold,
-                lookback,
-                model_kw,
-                train_kw,
-                seed,
-                device,
-                run_dir,
-                pretrained_dir,
-                not args.no_checkpoints,
-                freeze_encoder,
-                head_lr,
-                encoder_lr,
-                ft_weight_decay,
-            )
-            log(
-                run_dir,
-                f"fold {fold.id} seed {seed}: val "
-                f"{metrics['val_loss']:.6f}, test {metrics['test_loss']:.6f}, "
-                f"time {metrics['wall_sec']} seconds",
-            )
-
-    predictions = merge_predictions(run_dir)
-    write_run_info(
-        run_dir,
-        args.mode,
-        seeds,
-        args.jobs,
-        threads,
-        lookback,
-        horizon,
-        len(folds),
-        str(device),
-        args.use_tuning,
-    )
-    log(
-        run_dir,
-        f"done: {len(predictions)} prediction rows -> "
-        f"{run_dir / 'predictions.csv'}",
-    )
-    if args.mode == "smoke":
-        smoke_summary(run_dir, predictions)
-    return 0
-
-
-def run_fit_pretrain(
-    panel: PanelData,
-    fold: Fold,
-    lookback: int,
-    model_kw: dict[str, Any],
-    train_kw: dict[str, Any],
-    seed: int,
-    device: torch.device,
-    run_dir: Path,
-    pretrained_dir: Path,
-    save_checkpoint: bool,
-    freeze_encoder: bool,
-    head_lr: float,
-    encoder_lr: float,
-    weight_decay: float,
-) -> dict[str, Any]:
-    """Train one (fold, seed) with a pre-trained encoder + fine-tune."""
-    start = time.time()
-
-    # Load the pre-trained encoder for this seed (required, no fallback)
-    pretrained_path = pretrained_dir / f"encoder_seed{seed}.pt"
-    if not pretrained_path.exists():
-        available = sorted(p.name for p in pretrained_dir.glob("encoder_seed*.pt"))
-        raise FileNotFoundError(
-            f"encoder_seed{seed}.pt is missing in {pretrained_dir}. "
-            f"Available: {available}"
-        )
-
-    # Scale panel
-    features, target, _, target_prep = scale_panel(panel, fold.train)
-    x_train, y_train = window_pool(
-        panel, features, target, fold.train, fold.banned, lookback
-    )
-    x_val, y_val = window_pool(panel, features, target, fold.validation, [], lookback)
-    x_test, y_test = window_pool(panel, features, target, fold.test, [], lookback)
-
-    # Build model with pretrained encoder
-    model = build_model(model_kw, seed)
-    load_pretrained_encoder(
-        model.encoder, torch.load(pretrained_path, map_location=device)
-    )
-
-    # Fine-tune
-    result = fine_tune_model(
-        model,
-        (x_train, y_train),
-        (x_val, y_val),
-        train_kw["batch_size"],
-        train_kw["epochs"],
-        train_kw["patience"],
-        head_lr,
-        encoder_lr,
-        weight_decay,
-        seed,
-        device,
-        freeze_encoder=freeze_encoder,
-    )
-
-    pred_test = predict(model, x_test, train_kw["batch_size"], device)
-    test_loss = float(np.mean((pred_test - y_test) ** 2))
-
-    rows: list[dict[str, Any]] = []
-    for span, role in (
-        (fold.validation, "validation"),
-        (fold.test, "test"),
-    ):
-        for ticker in panel.tickers:
-            x, y, idx = build_windows(
-                features[ticker],
-                target[ticker],
-                lookback,
-                span[0],
-                span[1],
-                [],
-            )
-            if len(y) == 0:
-                continue
-            pred = predict(model, x, train_kw["batch_size"], device)
-            pred_raw = target_prep.inverse_transform(pd.DataFrame({"target": pred}))[
-                "target"
-            ].to_numpy()
-            y_raw = target_prep.inverse_transform(pd.DataFrame({"target": y}))[
-                "target"
-            ].to_numpy()
-            for j, position in enumerate(idx):
-                rows.append(
-                    {
-                        "fold": fold.id,
-                        "seed": seed,
-                        "date": panel.dates[position].date().isoformat(),
-                        "ticker": ticker,
-                        "role": role,
-                        "pred_scaled": float(pred[j]),
-                        "true_scaled": float(y[j]),
-                        "pred_raw": float(pred_raw[j]),
-                        "true_raw": float(y_raw[j]),
-                    }
-                )
-
-    part = pd.DataFrame(
-        rows,
-        columns=[
-            "fold",
-            "seed",
-            "date",
-            "ticker",
-            "role",
-            "pred_scaled",
-            "true_scaled",
-            "pred_raw",
-            "true_raw",
-        ],
-    )
-    part.to_csv(
-        run_dir / "predictions_parts" / f"{fold.id:03d}_{seed}.csv",
-        index=False,
-    )
-    if save_checkpoint:
-        torch.save(
-            result.state_dict,
-            run_dir / "checkpoints" / f"{fold.id:03d}_{seed}.pt",
-        )
-
-    metrics = {
-        "fold": fold.id,
-        "seed": seed,
-        "train_loss": result.history[-1]["train_loss"],
-        "val_loss": result.best_val_loss,
-        "test_loss": test_loss,
-        "best_epoch": result.best_epoch,
-        "stopped_early": result.stopped_early,
-        "n_train": len(y_train),
-        "n_val": len(y_val),
-        "n_test": len(y_test),
-        "wall_sec": round(time.time() - start, 3),
-        "sec_per_epoch": round((time.time() - start) / max(len(result.history), 1), 3),
-    }
-    write_json(run_dir / "metrics" / f"{fold.id:03d}_{seed}.json", metrics)
-    return metrics
-
-
 @dataclass
 class _WorkerContext:
     """Worker process context; filled in by the initializer function."""
@@ -1324,6 +1050,7 @@ class _WorkerContext:
     device: torch.device | None = None
     run_dir: Path | None = None
     save_checkpoint: bool | None = None
+    fine_tune: dict[str, Any] | None = None
 
 
 _worker: _WorkerContext | None = None
@@ -1338,6 +1065,7 @@ def _init_worker(
     device: torch.device,
     run_dir: Path,
     save_checkpoint: bool,
+    fine_tune: dict[str, Any] | None,
     thread: int,
 ) -> None:
     """Initialize the parallel worker process."""
@@ -1352,6 +1080,7 @@ def _init_worker(
     _worker.device = device
     _worker.run_dir = run_dir
     _worker.save_checkpoint = save_checkpoint
+    _worker.fine_tune = fine_tune
 
 
 def _fit_task(pairs: tuple[int, int]) -> tuple[int, int]:
@@ -1368,13 +1097,23 @@ def _fit_task(pairs: tuple[int, int]) -> tuple[int, int]:
         _worker.device,
         _worker.run_dir,
         _worker.save_checkpoint,
+        fine_tune=_worker.fine_tune,
     )
     return fold_id, seed
 
 
-def run_walkforward(args: argparse.Namespace) -> int:
-    """Run the full walk-forward (or smoke) and write the predictions."""
+def run_walkforward(
+    args: argparse.Namespace, pretrained: bool = False
+) -> int:
+    """Run the full walk-forward (or smoke) and write the predictions.
+
+    With `pretrained=True`, each fold fine-tunes the pre-trained
+    `encoder_seed{N}.pt` (from `--pretrained-dir`, default
+    `run_dir/pretrained`) instead of training from scratch; pre-training is
+    NOT run automatically.
+    """
     model_cfg = load_config("model")
+    pretrain_cfg = model_cfg.get("pretrain", {})
     split_cfg = load_config("split")
     tickers = list(load_config("universe")["tickers"])
 
@@ -1410,16 +1149,27 @@ def run_walkforward(args: argparse.Namespace) -> int:
         folds = folds[:fold_limit]
 
     run_dir = args.out or new_run_dir(args.mode)
-    ensure_dirs(
-        run_dir / "predictions_parts",
-        run_dir / "checkpoints",
-        run_dir / "metrics",
-    )
+    fine_tune = None
+    if pretrained:
+        ft_cfg = pretrain_cfg.get("fine_tune", {})
+        fine_tune = {
+            "pretrained_dir": args.pretrained_dir or (run_dir / "pretrained"),
+            "freeze_encoder": ft_cfg.get("freeze_encoder", False),
+            "head_lr": ft_cfg.get("head_lr", 1e-4),
+            "encoder_lr": ft_cfg.get("encoder_lr", 1e-5),
+            "weight_decay": pretrain_cfg.get("weight_decay", 0.0),
+        }
+    dirs = [run_dir / "predictions_parts", run_dir / "checkpoints", run_dir / "metrics"]
+    if pretrained:
+        dirs.append(run_dir / "pretrained")
+    ensure_dirs(*dirs)
     log(
         run_dir,
         f"starting {args.mode}: {len(folds)} folds, {len(seeds)} seeds, "
         f"jobs {args.jobs}, threads {threads}, device {device}",
     )
+    if fine_tune is not None:
+        log(run_dir, f"pre-trained encoder read from: {fine_tune['pretrained_dir']}")
 
     pairs = [(fold.id, seed) for fold in folds for seed in seeds]
     pairs = [
@@ -1440,6 +1190,7 @@ def run_walkforward(args: argparse.Namespace) -> int:
                 device,
                 run_dir,
                 not args.no_checkpoints,
+                fine_tune=fine_tune,
             )
             log(
                 run_dir,
@@ -1460,6 +1211,7 @@ def run_walkforward(args: argparse.Namespace) -> int:
                 device,
                 run_dir,
                 not args.no_checkpoints,
+                fine_tune,
                 max(1, threads),
             ),
         ) as pool:
@@ -1501,7 +1253,7 @@ def main() -> int:
     if args.mode == "pretrain":
         return run_pretrain(args)
     if args.mode == "walk-forward-pretrain":
-        return run_walkforward_pretrain(args)
+        return run_walkforward(args, pretrained=True)
     return run_walkforward(args)
 
 

@@ -71,6 +71,53 @@ def summarize_series(
     }
 
 
+def rank_ic_and_spread(
+    predictions: pd.DataFrame, top_frac: float = 1.0 / 3.0
+) -> dict[str, float]:
+    """Cross-sectional rank quality of the predictions.
+
+    Stage 4 only uses the ordering of the predictions, so the model is
+    scored as a ranker: per date, the Spearman correlation between
+    `pred_raw` and `true_raw` (the Rank IC), and the realized return of the
+    top `top_frac` minus the bottom `top_frac` ranked by prediction.
+
+    `predictions` needs columns `date, ticker, pred_raw, true_raw`. Dates
+    with fewer than 3 stocks, or with a degenerate (constant) prediction
+    column, are skipped.
+    """
+    rank_ics: list[float] = []
+    spreads: list[float] = []
+    for _, group in predictions.groupby("date"):
+        group = group.dropna(subset=["pred_raw", "true_raw"])
+        n = len(group)
+        if n < 3:
+            continue
+        ic = float(group["pred_raw"].corr(group["true_raw"], method="spearman"))
+        if not np.isfinite(ic):
+            continue
+        q = max(1, int(round(n * top_frac)))
+        ordered = group.sort_values("pred_raw")
+        rank_ics.append(ic)
+        spreads.append(
+            float(
+                ordered["true_raw"].tail(q).mean() - ordered["true_raw"].head(q).mean()
+            )
+        )
+    if not rank_ics:
+        raise ValueError("no date with at least 3 complete predictions")
+    ic = np.asarray(rank_ics, dtype=float)
+    spread = np.asarray(spreads, dtype=float)
+    ic_std = float(ic.std(ddof=1)) if len(ic) > 1 else 0.0
+    return {
+        "rank_ic_mean": float(ic.mean()),
+        "rank_ic_std": ic_std,
+        "rank_ic_ir": float(ic.mean() / ic_std) if ic_std > 0 else 0.0,
+        "top_minus_bottom_mean": float(spread.mean()),
+        "top_minus_bottom_std": float(spread.std(ddof=1)) if len(spread) > 1 else 0.0,
+        "n_dates": float(len(ic)),
+    }
+
+
 def daily_risk_free_rate(
     date: pd.DatetimeIndex, rate_file: str, periods_per_year: int = 252
 ) -> pd.Series:

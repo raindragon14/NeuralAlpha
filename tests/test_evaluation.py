@@ -20,7 +20,11 @@ from lq45.evaluation.dsr_pbo import (
     expected_max_sharpe,
     pbo_cscv,
 )
-from lq45.evaluation.metrics import max_drawdown_and_duration, summarize_series
+from lq45.evaluation.metrics import (
+    max_drawdown_and_duration,
+    rank_ic_and_spread,
+    summarize_series,
+)
 from lq45.evaluation.regimes import split_regimes
 from lq45.evaluation.significance import (
     mean_difference_test,
@@ -144,6 +148,46 @@ def test_regimes() -> None:
     assert len(parts["covid"]) == 1 and len(parts["recovery_rate_hike"]) == 1
 
 
+def test_ranker_metric() -> None:
+    frame = pd.DataFrame(
+        {
+            "date": ["2020-01-01"] * 6,
+            "ticker": list("ABCDEF"),
+            "pred_raw": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
+            "true_raw": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
+        }
+    )
+    perfect = rank_ic_and_spread(frame)
+    assert abs(perfect["rank_ic_mean"] - 1.0) < 1e-9
+    assert perfect["top_minus_bottom_mean"] > 0
+    assert perfect["n_dates"] == 1.0
+    # A reversed ranking is perfectly negatively correlated.
+    reversed_ic = rank_ic_and_spread(frame.assign(true_raw=-frame["true_raw"]))
+    assert abs(reversed_ic["rank_ic_mean"] + 1.0) < 1e-9
+
+    # Two dates of noisy rankings: IC stays inside [-1, 1], both dates counted.
+    rng = np.random.default_rng(0)
+    noisy = pd.DataFrame(
+        {
+            "date": ["2020-01-01"] * 5 + ["2020-01-02"] * 5,
+            "ticker": list("ABCDE") * 2,
+            "pred_raw": rng.normal(size=10),
+            "true_raw": rng.normal(size=10),
+        }
+    )
+    result = rank_ic_and_spread(noisy)
+    assert -1.0 <= result["rank_ic_mean"] <= 1.0
+    assert result["n_dates"] == 2.0
+
+    # A single 2-stock date is below the minimum and must be rejected.
+    try:
+        rank_ic_and_spread(frame.head(2))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("expected ValueError when no date has >= 3 stocks")
+
+
 def main() -> int:
     test_basic_metrics()
     test_expected_max_sharpe_closed_form()
@@ -151,7 +195,8 @@ def main() -> int:
     test_dsr_uses_trial_variance()
     test_significance()
     test_regimes()
-    print("test_evaluation.py: 6 tests passed")
+    test_ranker_metric()
+    print("test_evaluation.py: 7 tests passed")
     return 0
 
 

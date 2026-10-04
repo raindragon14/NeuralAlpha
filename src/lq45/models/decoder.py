@@ -97,7 +97,6 @@ class MAEDecoder(nn.Module):
         Returns:
             (B, n_channels, lookback) feature reconstruction
         """
-        _, _, _ = z.shape
         # Project to hidden
         z = self.proj(z)  # (B, L, hidden)
         z = z.permute(0, 2, 1)  # (B, hidden, L)

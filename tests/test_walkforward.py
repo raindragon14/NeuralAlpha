@@ -9,14 +9,13 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from lq45.models.walkforward import design_split, make_folds, make_pretrain_split
+from lq45.models.walkforward import design_split, make_folds
 
 SPLIT = {
     "initial_train_years": 2,
     "validation_days": 63,
     "test_days": 21,
     "step_days": 21,
-    "expanding": True,
     "purge": {"horizon_days": 5},
     "embargo_days": 59,
 }
@@ -72,22 +71,13 @@ def test_design_split() -> None:
     assert design.validation == (int(pos_2019[0]), int(pos_2019[-1]) + 1)
 
 
-def test_pretrain_split() -> None:
-    split = make_pretrain_split(100, 0.1)
-    assert split.train == (0, 90)
-    assert split.validation == (90, 100)
-    edge = make_pretrain_split(10, 0.5)
-    assert edge.train == (0, 5) and edge.validation == (5, 10)
-
-
 def main() -> int:
     test_count_and_bounds()
     test_embargo()
     test_purge_and_embargo_params()
     test_test_covers_oos()
     test_design_split()
-    test_pretrain_split()
-    print("test_walkforward.py: 6 tests passed")
+    print("test_walkforward.py: 5 tests passed")
     return 0
 
 

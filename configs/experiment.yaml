@@ -9,64 +9,23 @@
 #   bi_7drrr      : extension (gap in Chaweewanchon & Chaysiri 2022)   [B8]
 #   jisdor        : extension (same as above)                          [B9]
 # AROONOSC, Williams %R and STOCHF are dropped to keep 8 features.     [B7]
-#
-# B9: jisdor log-return (non-stationary level). C4: preprocessing is fitted only
-# on the training data of each walk-forward window.
 
 features:
-  base: [close, volume]
   indicators:
     rsi: 14
     cci: 20
     cmo: 14
     mfi: 14
-  macro: [bi_7drrr, jisdor]
   macro_transform:
     bi_7drrr: level      # B8: changes monthly only; differences are almost always zero
     jisdor: log_return   # B9: non-stationary level
 
-preprocessing:
-  # C1-C3: Sebastian & Tantia (2024) - outliers winsorized then scaled,
-  # applied to both features and target.
-  winsorize: {method: iqr, multiplier: 1.5}
-  scale: min_max
-  apply_to: [features, target]
-
 evaluation:
-  # E8: daily risk-free rate = annual BI-7DRRR divided by 252 (official BI).
-  risk_free: {source: bi_7drrr, convention: annual_over_252}
   # E9: 252-day convention. IDX is empirically ~242 days/year; tested in the sensitivity analysis.
   annualization: 252
-
-ablation:
-  features:
-    - {name: price, add: []}
-    - {name: price_technical, add: [rsi, cci, cmo, mfi]}
-    - {name: price_technical_macro, add: [rsi, cci, cmo, mfi, bi_7drrr, jisdor]}
-  models: [mv_classic, ridge, random_forest, gradient_boosting, cnn_bilstm]
-  baselines: [equal_weight_1n, ihsg_buy_hold]
-
-metrics:
-  - sharpe
-  - sortino
-  - calmar
-  - max_drawdown
-  - cumulative_return
-  - annual_return
-  - turnover
-  - turnover_adjusted_sharpe
-  - deflated_sharpe
-  - pbo_cscv
 
 # OOS starts in 2020 (initial train of 2 years)
 regimes:
   design_calm:        {start: "2018-01-01", end: "2019-12-31", oos: false}
   covid:              {start: "2020-01-01", end: "2020-12-31", oos: true}
   recovery_rate_hike: {start: "2021-01-01", end: "2025-12-31", oos: true}
-
-significance:
-  # E15: Jobson & Korkie (1981) reinforced by Ledoit & Wolf (2008) using HAC.
-  # The original Jobson-Korkie test is unreliable for non-normal distributions and time series.
-  sharpe_test: ledoit_wolf_hac
-  # E16: Romano & Wolf (2005); backtest overfitting control Bailey et al. (2016).
-  multiple_testing: romano_wolf

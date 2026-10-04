@@ -27,6 +27,7 @@ from lq45.utils.config import (
     RAW_DIR,
     ensure_dirs,
     load_config,
+    stock_file_name,
 )
 
 
@@ -36,11 +37,6 @@ def parse_args() -> argparse.Namespace:
         description="Build features and targets from the raw data."
     )
     return parser.parse_args()
-
-
-def stock_file_name(ticker: str) -> str:
-    """File name without the `.JK` suffix."""
-    return ticker.replace(".JK", "")
 
 
 def main() -> int:

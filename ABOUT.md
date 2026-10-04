@@ -34,8 +34,8 @@
 | **ML Pipeline** | scikit-learn, pandas, numpy |
 | **Optimization** | scipy.optimize (SLSQP), custom mean-variance solver |
 | **Data** | Yahoo Finance API, Bank Indonesia API (JISDOR, BI-7DRRR) |
-| **Infrastructure** | Docker, Python 3.11+, Git |
-| **Testing** | pytest (30 tests), ruff, black, mypy |
+| **Infrastructure** | Python 3.11+, Git |
+| **Testing** | pytest (30 tests) |
 
 ---
 

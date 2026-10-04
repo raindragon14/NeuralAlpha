@@ -112,34 +112,3 @@ def design_split(
     train = (int(train_positions[0]), int(train_positions[-1]) + 1 - horizon)
     validation = (int(validation_positions[0]), int(validation_positions[-1]) + 1)
     return DesignSplit(train=train, validation=validation)
-
-
-@dataclass
-class PretrainSplit:
-    """Split for pre-training: all data split train/val only."""
-
-    train: tuple[int, int]
-    validation: tuple[int, int]
-
-
-def make_pretrain_split(
-    n_days: int,
-    val_ratio: float = 0.1,
-) -> PretrainSplit:
-    """Simple split for pre-training: train + val (no test).
-
-    Pre-training uses ALL data (no purge/embargo because no labels leak).
-    The split is by ratio.
-
-    Args:
-        n_days: total calendar length
-        val_ratio: fraction for validation (default 10%)
-
-    Returns:
-        PretrainSplit with train/val indices
-    """
-    split_idx = int(n_days * (1 - val_ratio))
-    return PretrainSplit(
-        train=(0, split_idx),
-        validation=(split_idx, n_days),
-    )

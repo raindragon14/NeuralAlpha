@@ -11,6 +11,8 @@ dependencies = [
     "scipy>=1.18",
     "pyyaml>=6.0",
     "matplotlib>=3.9",
+    "requests>=2.31",
+    "yfinance>=0.2",
 ]
 
 [project.optional-dependencies]

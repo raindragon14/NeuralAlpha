@@ -23,7 +23,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import pandas as pd
 
 from lq45.data import fetch_bi_rate, fetch_equities, fetch_jisdor
-from lq45.utils.config import RAW_DIR, ensure_dirs, load_config
+from lq45.utils.config import RAW_DIR, ensure_dirs, load_config, stock_file_name
 
 
 def parse_args() -> argparse.Namespace:
@@ -68,7 +68,7 @@ def main() -> int:
         if frame is None or frame.empty:
             missing.append(ticker)
             continue
-        name = ticker.replace(".JK", "")
+        name = stock_file_name(ticker)
         frame.to_csv(prices_dir / f"{name}.csv")
         saved.append((name, len(frame)))
 
