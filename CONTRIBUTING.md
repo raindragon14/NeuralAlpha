@@ -19,7 +19,7 @@ pre-commit run --all-files   # ruff, black, mypy, whitespace
 pytest --cov=src/lq45 --cov-fail-under=70
 ```
 
-CI runs the same checks on Python 3.11, 3.12 and 3.13.
+CI runs the same checks on Python 3.12 and 3.13.
 
 ## Layout
 

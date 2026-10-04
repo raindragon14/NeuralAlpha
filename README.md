@@ -1,6 +1,6 @@
 # NeuralAlpha
 
-[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.14+-ee4c2c.svg)](https://pytorch.org/)
 [![Status](https://img.shields.io/badge/status-active-brightgreen.svg)]()
@@ -74,7 +74,7 @@ checks covering COVID-19 and the 2021–2025 rate-hike cycle.
 ## Quick Start
 
 ### Prerequisites
-- Python 3.11+ (tested on 3.13.5)
+- Python 3.12+ (tested on 3.13.5)
 - PyTorch 2.14+ (CPU)
 - 7 GiB RAM minimum (limits parallel jobs to 4)
 
@@ -157,7 +157,7 @@ src/lq45/          Package: data, features, models, portfolio, evaluation, utils
 tests/             unit tests + tests/test_pipeline_smoke.py (offline end-to-end)
 Makefile           Pipeline entrypoints (make reproduce / smoke / test / lint)
 requirements.lock  Fully pinned environment
-.github/           CI: lint, type-check and tests on Python 3.11-3.13
+.github/           CI: lint, type-check and tests on Python 3.12-3.13
 ```
 
 ---

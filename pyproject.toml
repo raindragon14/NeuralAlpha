@@ -2,13 +2,12 @@
 name = "lq45"
 version = "0.1.0"
 description = "NeuralAlpha: Two-stage portfolio optimization with self-supervised MAE pre-training and CNN-BiLSTM preselection for LQ45 equities"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "torch>=2.14",
     "scikit-learn>=1.9",
     "pandas>=3.0",
-    # numpy 2.5+ is Python >=3.12 only; 2.2 keeps the declared 3.11 support.
-    "numpy>=2.2",
+    "numpy>=2.5",
     "scipy>=1.18",
     "pyyaml>=6.0",
     "matplotlib>=3.9",
@@ -34,7 +33,7 @@ where = ["src"]
 
 [tool.ruff]
 line-length = 88
-target-version = "py311"
+target-version = "py312"
 extend-exclude = [".venv", "build", "dist"]
 
 [tool.ruff.lint]
@@ -48,10 +47,10 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.black]
 line-length = 88
-target-version = ["py311"]
+target-version = ["py312"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 files = ["src"]
 ignore_missing_imports = true
 warn_unused_ignores = true
